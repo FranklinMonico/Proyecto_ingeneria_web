@@ -1,0 +1,16 @@
+server:
+  port: 8081
+spring:
+  application:
+    name: Studentservices
+
+  datasource:
+    url: jdbc:mysql://localhost:3308/student_db
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
