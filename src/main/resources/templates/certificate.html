@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Certificado de finalización</title>
+</head>
+<body style="font-family: Arial, sans-serif; padding: 40px; color: #333; text-align: center;">
+
+<h1 style="color: #2e7d32;">¡Felicitaciones!</h1>
+
+<p style="font-size: 18px;">Has completado exitosamente el curso:</p>
+
+<h2 style="color: #1565c0;" th:text="${courseName}">Nombre del curso</h2>
+
+<p>Este certificado confirma que completaste todos los módulos del curso.</p>
+
+<p style="color: #888; font-size: 13px;">
+    Fecha de emisión: <span th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy')}"></span>
+</p>
+
+<br>
+<p>El equipo de la plataforma</p>
+
+</body>
+</html>

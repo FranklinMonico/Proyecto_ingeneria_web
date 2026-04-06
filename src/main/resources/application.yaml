@@ -1,5 +1,6 @@
 server:
   port: 8081
+
 spring:
   application:
     name: Studentservices
@@ -14,3 +15,30 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  mail:
+    host: sandbox.smtp.mailtrap.io
+    port: 2525
+    username: bab84ba3d66ad5
+    password: 12aa6c462a66b2
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    cache: false
+
+espocrm:
+  url: http://localhost:8082
+  api-key: 1bd355c4ec1cf60dd20374d9b5a53bc2

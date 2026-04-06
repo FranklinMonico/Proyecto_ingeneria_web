@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Restablecer Contraseña</title>
+</head>
+<body style="font-family: Arial; background:#f4f4f4; padding:20px;">
+
+<div style="max-width:500px; margin:auto; background:white; padding:30px; border-radius:10px; text-align:center;">
+
+    <h2>Restablecer Contraseña</h2>
+
+    <form th:action="@{/api/auth/reset-password}" method="post">
+
+        <!-- 🔥 TOKEN OCULTO -->
+        <input type="hidden" name="token" th:value="${token}" />
+
+        <div style="margin-bottom:15px;">
+            <input type="password" name="newPassword" placeholder="Nueva contraseña"
+                   style="width:100%; padding:10px;" required />
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <input type="password" name="confirmPassword" placeholder="Confirmar contraseña"
+                   style="width:100%; padding:10px;" required />
+        </div>
+
+        <button type="submit"
+                style="padding:12px 20px; background:#28a745; color:white; border:none; border-radius:5px;">
+            Cambiar contraseña
+        </button>
+
+    </form>
+
+</div>
+
+</body>
+</html>

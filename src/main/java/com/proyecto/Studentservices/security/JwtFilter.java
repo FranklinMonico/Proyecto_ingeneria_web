@@ -33,10 +33,18 @@ public class JwtFilter extends org.springframework.web.filter.OncePerRequestFilt
         String email = null;
         String token = null;
 
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
-            email = jwtUtil.extractEmail(token);
+
+            try {
+                email = jwtUtil.extractEmail(token);
+            } catch (Exception e) {
+
+                System.out.println("Token inválido: " + e.getMessage());
+            }
         }
+
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 

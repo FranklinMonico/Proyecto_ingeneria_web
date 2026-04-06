@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Login</title>
+</head>
+<body style="font-family: Arial; background:#f4f4f4; padding:20px;">
+
+<div style="max-width:500px; margin:auto; background:white; padding:30px; border-radius:10px; text-align:center;">
+
+    <h2>Iniciar Sesión</h2>
+
+    <!-- 🔥 IMPORTANTE: id y quitar th:action -->
+    <form id="loginForm">
+
+        <div style="margin-bottom:15px;">
+            <input type="email" id="email" placeholder="Correo"
+                   style="width:100%; padding:10px;" required />
+        </div>
+
+        <div style="margin-bottom:15px;">
+            <input type="password" id="password" placeholder="Contraseña"
+                   style="width:100%; padding:10px;" required />
+        </div>
+
+        <button type="submit"
+                style="padding:12px 20px; background:#007bff; color:white; border:none; border-radius:5px;">
+            Iniciar Sesión
+        </button>
+
+    </form>
+
+</div>
+
+<script>
+    document.getElementById("loginForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const data = {
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value
+        };
+
+        try {
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // 🔥 Guardar token
+                localStorage.setItem("token", result.data);
+
+                alert("Login exitoso");
+
+                // 🔥 Redirigir
+                window.location.href = "/view/index";
+            } else {
+                alert(result.message);
+            }
+
+        } catch (error) {
+            alert("Error en el servidor");
+        }
+    });
+</script>
+
+</body>
+</html>

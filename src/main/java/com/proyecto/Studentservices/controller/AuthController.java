@@ -1,54 +1,49 @@
 package com.proyecto.Studentservices.controller;
 
+import com.proyecto.Studentservices.dto.ApiResponse;
 import com.proyecto.Studentservices.dto.AuthRequest;
 import com.proyecto.Studentservices.dto.RegisterRequest;
 import com.proyecto.Studentservices.model.Student;
 import com.proyecto.Studentservices.repository.StudentRepository;
 import com.proyecto.Studentservices.security.JwtUtil;
+import com.proyecto.Studentservices.service.AuthService;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
 
+@Controller
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private final AuthService authService;
     private final StudentRepository repo;
-    private final BCryptPasswordEncoder encoder;
-    private final JwtUtil jwtUtil;
 
-    public AuthController(StudentRepository repo, BCryptPasswordEncoder encoder, JwtUtil jwtUtil) {
+    public AuthController(AuthService authService,
+                          StudentRepository repo) {
+        this.authService = authService;
         this.repo = repo;
-        this.encoder = encoder;
-        this.jwtUtil = jwtUtil;
     }
 
+
     @PostMapping("/register")
-    public String register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Revisa tu correo", null));
 
-        Student student = Student.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .password(encoder.encode(request.getPassword()))
-                .build();
-
-        repo.save(student);
-
-        return "Usuario registrado";
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+        String token = authService.login(request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Login exitoso", token));
+    }
 
-        Student student = repo.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        if (!encoder.matches(request.getPassword(), student.getPassword())) {
-            throw new RuntimeException("Contraseña incorrecta");
-        }
-
-        return jwtUtil.generateToken(student.getEmail());
+    @GetMapping("/confirm")
+    public ResponseEntity<?> confirm(@RequestParam String token) {
+        authService.confirmAccount(token);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Cuenta confirmada", null));
     }
 }

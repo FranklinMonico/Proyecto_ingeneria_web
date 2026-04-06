@@ -3,6 +3,8 @@ package com.proyecto.Studentservices.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Date;
+
 @Entity
 @Getter
 @Setter
@@ -23,4 +25,13 @@ public class Student {
     private String password;
 
     private String profilePicture;
+
+    // 🔥 NUEVO
+    private boolean enabled = false;
+
+    private String verificationToken;
+
+    private String resetToken;
+
+    private Date resetTokenExpiration;
 }
