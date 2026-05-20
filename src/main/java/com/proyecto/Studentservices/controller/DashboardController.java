@@ -1,7 +1,9 @@
 package com.proyecto.Studentservices.controller;
 
+import com.proyecto.Studentservices.dto.ApiResponse;
 import com.proyecto.Studentservices.dto.DashboardResponse;
 import com.proyecto.Studentservices.service.DashboardService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,7 +19,8 @@ public class DashboardController {
     }
 
     @GetMapping
-    public DashboardResponse getDashboard() {
-        return dashboardService.getDashboard();
+    public ResponseEntity<ApiResponse<DashboardResponse>> getDashboard() {
+        DashboardResponse dashboard = dashboardService.getDashboard();
+        return ResponseEntity.ok(new ApiResponse<>(true, "Dashboard obtenido", dashboard));
     }
 }

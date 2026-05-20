@@ -7,17 +7,16 @@ import com.proyecto.Studentservices.dto.ModuleCompletedEvent;
 import com.proyecto.Studentservices.model.Certificate;
 import com.proyecto.Studentservices.model.Enrollment;
 import com.proyecto.Studentservices.model.ModuleProgress;
-import com.proyecto.Studentservices.model.Student;
 import com.proyecto.Studentservices.repository.CertificateRepository;
 import com.proyecto.Studentservices.repository.EnrollmentRepository;
 import com.proyecto.Studentservices.repository.ModuleProgressRepository;
 import com.proyecto.Studentservices.repository.StudentRepository;
+import com.proyecto.Studentservices.service.CertificatePdfService;
 import com.proyecto.Studentservices.service.EmailService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Component
 public class EnrollmentListener {
@@ -29,6 +28,7 @@ public class EnrollmentListener {
     private final EmailService emailService;
     private final LearningEngineClient learningEngineClient;
     private final EspoCrmClient espoCrmClient;
+    private final CertificatePdfService certificatePdfService;
 
     public EnrollmentListener(EnrollmentRepository enrollmentRepository,
                               StudentRepository studentRepository,
@@ -36,7 +36,8 @@ public class EnrollmentListener {
                               CertificateRepository certificateRepository,
                               EmailService emailService,
                               LearningEngineClient learningEngineClient,
-                              EspoCrmClient espoCrmClient) {
+                              EspoCrmClient espoCrmClient,
+                              CertificatePdfService certificatePdfService) {
         this.enrollmentRepository = enrollmentRepository;
         this.studentRepository = studentRepository;
         this.moduleProgressRepository = moduleProgressRepository;
@@ -44,6 +45,7 @@ public class EnrollmentListener {
         this.emailService = emailService;
         this.learningEngineClient = learningEngineClient;
         this.espoCrmClient = espoCrmClient;
+        this.certificatePdfService = certificatePdfService;
     }
 
     // ─── EVENTO 1: Inscripción activada ───────────────────────────────────────
@@ -51,47 +53,54 @@ public class EnrollmentListener {
     @RabbitListener(queues = "enrollment.activated.queue")
     public void handleEnrollment(EnrollmentEvent event) {
 
-        Student student = studentRepository.findByEmail(event.getStudentEmail())
-                .orElse(null);
-
-        if (student == null) {
-            System.out.println("Usuario no registrado, evento ignorado: " + event.getStudentEmail());
-            return;
-        }
-
-        // Evitar duplicados
+        // 1. Evitar duplicados — guardamos aunque el estudiante no exista aún
         boolean exists = enrollmentRepository
-                .findByStudentEmail(student.getEmail())
-                .stream()
-                .anyMatch(e -> e.getCourseId().equals(event.getCourseId().toString()));
+                .findByStudentEmailAndCourseId(
+                        event.getStudentEmail(),
+                        event.getCourseId().toString()
+                ).isPresent();
 
         if (exists) {
             System.out.println("Enrollment ya existe para curso: " + event.getCourseId());
             return;
         }
 
+        // 2. Obtener total de módulos del curso desde el Grupo A
+        //int totalModulos = learningEngineClient.getTotalModulesByCourse(event.getCourseId().toString());
+        int totalModulos = event.getCourseTotalModules();
+        if (totalModulos == 0) {
+            System.out.println("Advertencia: no se pudo obtener totalModules para curso "
+                    + event.getCourseId());
+        }
+
+        // 3. Guardar enrollment siempre — aunque el estudiante no esté registrado aún
         Enrollment enrollment = new Enrollment();
         enrollment.setEnrollmentId(event.getEnrollmentId().toString());
-        enrollment.setLearningStudentId(event.getStudentId().toString()); // guardamos el ID numérico
-        enrollment.setStudentEmail(student.getEmail());
+
+        enrollment.setStudentEmail(event.getStudentEmail());
         enrollment.setCourseId(event.getCourseId().toString());
-        enrollment.setCourseName(event.getCourseName());
+        enrollment.setCourseName(event.getCourseTitle());
+        enrollment.setTotalModules(totalModulos);
         enrollment.setProgress(0);
         enrollment.setEnrolledAt(LocalDateTime.now());
         enrollmentRepository.save(enrollment);
 
-        // Email de bienvenida
-        try {
-            emailService.sendWelcomeEmail(
-                    student.getEmail(),
-                    student.getName(),
-                    event.getCourseName()
-            );
-        } catch (Exception e) {
-            System.out.println("Error enviando email de bienvenida: " + e.getMessage());
-        }
+        // 4. Email de bienvenida solo si el estudiante ya existe en nuestra BD
+        studentRepository.findByEmail(event.getStudentEmail()).ifPresent(student -> {
+            try {
+                emailService.sendWelcomeEmail(
+                        student.getEmail(),
+                        student.getName(),
+                        event.getCourseTitle()
+                );
+            } catch (Exception e) {
+                System.out.println("Error enviando email de bienvenida: " + e.getMessage());
+            }
+        });
 
-        System.out.println("Enrollment creado: " + event.getCourseName() + " para " + student.getEmail());
+        System.out.println("Enrollment guardado: " + event.getCourseTitle()
+                + " para " + event.getStudentEmail()
+                + " | Total módulos: " + totalModulos);
     }
 
     // ─── EVENTO 2: Módulo completado ──────────────────────────────────────────
@@ -99,13 +108,16 @@ public class EnrollmentListener {
     @RabbitListener(queues = "module.completed.queue")
     public void handleModuleCompleted(ModuleCompletedEvent event) {
 
-        // 1. Buscar el enrollment por enrollmentId
+        // 1. Buscar enrollment por studentEmail y courseId
         Enrollment enrollment = enrollmentRepository
-                .findByEnrollmentId(event.getEnrollmentId().toString())
-                .orElse(null);
+                .findByStudentEmailAndCourseId(
+                        event.getStudentEmail(),
+                        event.getCourseId().toString()
+                ).orElse(null);
 
         if (enrollment == null) {
-            System.out.println("Enrollment no encontrado para id: " + event.getEnrollmentId());
+            System.out.println("Enrollment no encontrado para: "
+                    + event.getStudentEmail() + " curso: " + event.getCourseId());
             return;
         }
 
@@ -127,22 +139,17 @@ public class EnrollmentListener {
             System.out.println("Módulo " + event.getModuleId() + " guardado en module_progress");
         }
 
-        // 3. Calcular porcentaje
-        //    - Cuántos módulos completó el estudiante (de tu BD)
+        // 3. Calcular porcentaje usando totalModules guardado en enrollment
         int modulosCompletados = moduleProgressRepository
                 .findByStudentEmailAndCourseId(
                         enrollment.getStudentEmail(),
                         enrollment.getCourseId()
                 ).size();
 
-        //    - Cuántos módulos tiene el curso en total (preguntando al Grupo A)
-        int totalModulos = learningEngineClient.getTotalModules(
-                enrollment.getCourseId(),
-                enrollment.getLearningStudentId() // studentId — ver nota abajo
-        );
+        int totalModulos = enrollment.getTotalModules();
 
         if (totalModulos == 0) {
-            System.out.println("No se pudo obtener total de módulos del Grupo A");
+            System.out.println("Total de módulos es 0, no se puede calcular porcentaje");
             return;
         }
 
@@ -154,8 +161,19 @@ public class EnrollmentListener {
         enrollment.setProgress(porcentaje);
         enrollmentRepository.save(enrollment);
 
-        // 5. Si llegó al 100%, emitir certificado
+        // 5. Si llegó al 100% emitir certificado
         if (porcentaje == 100) {
+
+            // Verificar con Grupo A que inscripción esté activa
+            boolean isActive = learningEngineClient.hasActiveEnrollment(
+                    enrollment.getStudentEmail(),
+                    enrollment.getCourseId()
+            );
+
+            if (!isActive) {
+                System.out.println("Inscripción no activa en Grupo A, no se emite certificado");
+                return;
+            }
 
             boolean certExists = certificateRepository
                     .findByStudentEmailAndCourseId(
@@ -173,30 +191,56 @@ public class EnrollmentListener {
             cert.setCourseId(enrollment.getCourseId());
             cert.setCourseName(enrollment.getCourseName());
             cert.setIssuedAt(LocalDateTime.now());
+            cert.setSent(false);
             certificateRepository.save(cert);
 
-            try {
-                emailService.sendCertificateEmail(
-                        enrollment.getStudentEmail(),
-                        enrollment.getCourseName()
-                );
-            } catch (Exception e) {
-                System.out.println("Error enviando certificado: " + e.getMessage());
-            }
+            // Enviar email con PDF adjunto
+            studentRepository.findByEmail(enrollment.getStudentEmail()).ifPresent(student -> {
+                try {
+                    // Generar el PDF
+                    String studentFullName = student.getName()
+                            + (student.getLastName() != null ? " " + student.getLastName() : "");
 
-            System.out.println("Certificado emitido para: " + enrollment.getStudentEmail());
-            try {
-                String contactId = espoCrmClient.findContactIdByEmail(
-                        enrollment.getStudentEmail()
-                );
-                if (contactId != null) {
-                    espoCrmClient.updateCompletedCourses(
-                            contactId,
-                            enrollment.getCourseName()
+                    byte[] pdfBytes = certificatePdfService.generateCertificate(
+                            studentFullName,
+                            enrollment.getCourseName(),
+                            cert.getIssuedAt()
                     );
+
+                    // Mandar email con PDF adjunto
+                    if (pdfBytes != null) {
+                        emailService.sendCertificateEmailWithPdf(
+                                student.getEmail(),
+                                studentFullName,
+                                enrollment.getCourseName(),
+                                pdfBytes
+                        );
+                    } else {
+                        // Si falla el PDF mandar email normal
+                        emailService.sendCertificateEmail(
+                                student.getEmail(),
+                                enrollment.getCourseName()
+                        );
+                    }
+                } catch (Exception e) {
+                    System.out.println("Error enviando certificado: " + e.getMessage());
                 }
-            } catch (Exception e) {
-                System.out.println("Error actualizando EspoCRM: " + e.getMessage());
+
+                // Actualizar EspoCRM
+                try {
+                    String contactId = espoCrmClient.findContactIdByEmail(student.getEmail());
+                    if (contactId != null) {
+                        espoCrmClient.updateCompletedCourses(contactId, enrollment.getCourseName());
+                    }
+                } catch (Exception e) {
+                    System.out.println("Error actualizando EspoCRM: " + e.getMessage());
+                }
+            });
+
+            if (!cert.isSent()) {
+                System.out.println("Certificado guardado pendiente para: "
+                        + enrollment.getStudentEmail()
+                        + " — se enviará cuando se registre");
             }
         }
     }

@@ -11,6 +11,7 @@ public class DashboardResponse {
 
     private String name;
     private String email;
-
-    private List<CourseProgressDTO> courses;
+    private List<CourseProgressDTO> enrolledCourses;   // cursos inscritos con progreso
+    private List<AvailableCourseDTO> availableCourses; // cursos disponibles del catálogo
+    private int totalCertificates;
 }

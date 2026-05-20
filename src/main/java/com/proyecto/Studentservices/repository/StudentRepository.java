@@ -8,7 +8,7 @@ import java.util.Optional;
 public interface StudentRepository extends JpaRepository<Student, String> {
     Optional<Student> findByEmail(String email);
 
-    // 🔥 NUEVOS
+
     Optional<Student> findByVerificationToken(String token);
 
     Optional<Student> findByResetToken(String token);

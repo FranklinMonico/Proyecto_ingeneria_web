@@ -21,17 +21,16 @@ public class EspoCrmClient {
     }
 
     // ─── Crear contacto al registrarse ───────────────────────────────────────
-    public String createContact(String name, String email) {
+    public String createContact(String firstName, String lastName, String email) {
         try {
-            // Separar nombre y apellido
-            String[] parts = name.trim().split(" ", 2);
-            String firstName = parts[0];
-            String lastName = parts.length > 1 ? parts[1] : "";
-
             EspoContactRequest request = new EspoContactRequest();
             request.setFirstName(firstName);
-            request.setLastName(lastName);
+            request.setLastName(lastName != null && !lastName.isBlank() ? lastName : firstName);
             request.setEmailAddress(email);
+
+            System.out.println("Mandando a EspoCRM → firstName: " + firstName
+                    + " | lastName: " + request.getLastName()
+                    + " | email: " + email);
 
             String response = webClient.post()
                     .uri("/api/v1/Contact")
@@ -98,5 +97,25 @@ public class EspoCrmClient {
             System.out.println("Error buscando contacto en EspoCRM: " + e.getMessage());
         }
         return null;
+    }
+    public void updateContact(String contactId, String firstName, String lastName, String email) {
+        try {
+            EspoContactRequest request = new EspoContactRequest();
+            request.setFirstName(firstName);
+            request.setLastName(lastName != null && !lastName.isBlank() ? lastName : firstName);
+            request.setEmailAddress(email);
+            webClient.put()
+                    .uri("/api/v1/Contact/" + contactId)
+                    .header("Content-Type", "application/json")
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            System.out.println("Contacto actualizado en EspoCRM: " + firstName + " " + lastName);
+
+        } catch (Exception e) {
+            System.out.println("Error actualizando contacto en EspoCRM: " + e.getMessage());
+        }
     }
 }

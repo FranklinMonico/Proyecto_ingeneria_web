@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Foro del Curso</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
+
+        .navbar {
+            background: #1F4E79; color: white;
+            padding: 14px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .navbar-left { display: flex; align-items: center; gap: 12px; }
+        .navbar h1 { font-size: 18px; }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none; color: white;
+            padding: 6px 14px; border-radius: 6px;
+            cursor: pointer; font-size: 13px;
+        }
+        .course-badge {
+            background: #2E75B6; padding: 4px 14px;
+            border-radius: 20px; font-size: 12px;
+        }
+
+        .chat-container {
+            flex: 1; display: flex; flex-direction: column;
+            max-width: 800px; width: 100%;
+            margin: 0 auto; padding: 16px; gap: 12px;
+        }
+
+        .status {
+            text-align: center; font-size: 12px;
+            padding: 6px; border-radius: 6px;
+        }
+        .status.connected { background: #d1fae5; color: #065f46; }
+        .status.disconnected { background: #fee2e2; color: #b91c1c; }
+        .status.connecting { background: #fef3c7; color: #92400e; }
+
+        .messages {
+            flex: 1; overflow-y: auto;
+            display: flex; flex-direction: column;
+            gap: 10px; padding: 16px;
+            background: white; border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            min-height: 0;
+        }
+
+        .message { display: flex; flex-direction: column; max-width: 70%; }
+        .message.own { align-self: flex-end; align-items: flex-end; }
+        .message.other { align-self: flex-start; align-items: flex-start; }
+
+        .message-name { font-size: 11px; color: #666; margin-bottom: 3px; font-weight: 600; }
+        .message-bubble {
+            padding: 10px 14px; border-radius: 18px;
+            font-size: 14px; line-height: 1.4; word-break: break-word;
+        }
+        .message.own .message-bubble {
+            background: #1F4E79; color: white; border-bottom-right-radius: 4px;
+        }
+        .message.other .message-bubble {
+            background: #e9ecef; color: #333; border-bottom-left-radius: 4px;
+        }
+        .message-time { font-size: 10px; color: #999; margin-top: 3px; }
+
+        .input-area {
+            display: flex; gap: 10px;
+            background: white; padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .input-area input {
+            flex: 1; padding: 10px 16px;
+            border: 1px solid #ddd; border-radius: 24px;
+            font-size: 14px; outline: none;
+        }
+        .input-area input:focus { border-color: #1F4E79; }
+        .input-area button {
+            background: #1F4E79; color: white;
+            border: none; padding: 10px 20px;
+            border-radius: 24px; cursor: pointer;
+            font-size: 14px; font-weight: 600;
+        }
+        .input-area button:hover { background: #2E75B6; }
+        .input-area button:disabled { background: #ccc; cursor: not-allowed; }
+
+        .empty { text-align: center; color: #999; margin: auto; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="navbar-left">
+        <button class="back-btn" onclick="window.location.href='/view/dashboard'">← Volver</button>
+        <h1>💬 Foro del Curso</h1>
+        <span class="course-badge" id="courseLabel">Cargando...</span>
+    </div>
+    <span style="font-size:13px;opacity:0.8" id="userLabel"></span>
+</div>
+
+<div class="chat-container">
+    <div class="status connecting" id="status">🔄 Conectando...</div>
+    <div class="messages" id="messages">
+        <div class="empty" id="emptyMsg">No hay mensajes aún. ¡Sé el primero!</div>
+    </div>
+    <div class="input-area">
+        <input type="text" id="messageInput"
+               placeholder="Escribe un mensaje..."
+               onkeypress="if(event.key==='Enter') sendMessage()"
+               disabled/>
+        <button onclick="sendMessage()" id="sendBtn" disabled>Enviar</button>
+    </div>
+</div>
+
+<script>
+    // Obtener datos del localStorage — ya no se pide el token manual
+    const token = localStorage.getItem('token');
+    const email = localStorage.getItem('email');
+    const courseId = window.location.pathname.split('/').pop();
+
+    document.getElementById('courseLabel').textContent = 'Curso #' + courseId;
+    document.getElementById('userLabel').textContent = email;
+
+    if (!token) {
+        window.location.href = '/view/login';
+    }
+
+    // Extraer nombre del email
+    const currentName = email ? email.split('@')[0] : 'Usuario';
+    let stompClient = null;
+
+    // Cargar historial
+    async function loadHistory() {
+        try {
+            const res = await fetch('/api/courses/' + courseId + '/forum?page=0&size=50', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            const msgs = data.content || [];
+            msgs.forEach(msg => appendMessage(msg, msg.studentEmail === email));
+        } catch(e) {
+            console.error('Error cargando historial:', e);
+        }
+    }
+
+    // Conectar WebSocket automáticamente
+    function connect() {
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null;
+
+        stompClient.connect({}, function(frame) {
+            stompClient.subscribe('/topic/course/' + courseId + '/forum',
+                function(message) {
+                    const msg = JSON.parse(message.body);
+                    appendMessage(msg, msg.studentEmail === email);
+                }
+            );
+
+            document.getElementById('status').className = 'status connected';
+            document.getElementById('status').textContent = '🟢 Conectado en tiempo real';
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+
+        }, function(error) {
+            document.getElementById('status').className = 'status disconnected';
+            document.getElementById('status').textContent = '🔴 Error de conexión — recarga la página';
+        });
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const content = input.value.trim();
+        if (!content || !stompClient) return;
+
+        stompClient.send(
+            '/app/forum/' + courseId,
+            {},
+            JSON.stringify({
+                content: content,
+                studentEmail: email,
+                studentName: currentName,
+                courseId: courseId
+            })
+        );
+
+        input.value = '';
+    }
+
+    function appendMessage(msg, isOwn) {
+        const container = document.getElementById('messages');
+        const empty = document.getElementById('emptyMsg');
+        if (empty) empty.remove();
+
+        const time = msg.sentAt
+            ? new Date(msg.sentAt).toLocaleTimeString('es-SV', {hour:'2-digit', minute:'2-digit'})
+            : new Date().toLocaleTimeString('es-SV', {hour:'2-digit', minute:'2-digit'});
+
+        const div = document.createElement('div');
+        div.className = 'message ' + (isOwn ? 'own' : 'other');
+        div.innerHTML = `
+            <div class="message-name">${msg.studentName || msg.studentEmail}</div>
+            <div class="message-bubble">${msg.content}</div>
+            <div class="message-time">${time}</div>
+        `;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // Arrancar
+    loadHistory();
+    connect();
+</script>
+</body>
+</html>

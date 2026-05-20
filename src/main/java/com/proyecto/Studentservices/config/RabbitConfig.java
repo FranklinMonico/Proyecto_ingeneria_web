@@ -19,6 +19,7 @@ public class RabbitConfig {
     public static final String ROUTING_KEY = "enrollment.activated";
     public static final String MODULE_QUEUE = "module.completed.queue";
     public static final String MODULE_ROUTING_KEY = "module.completed";
+    public static final String MODULES_EXCHANGE = "modules.exchange";
     @Bean
     public TopicExchange exchange() {
         return new TopicExchange(EXCHANGE);
@@ -27,6 +28,11 @@ public class RabbitConfig {
     @Bean
     public Queue queue() {
         return new Queue(QUEUE);
+    }
+
+    @Bean
+    public TopicExchange modulesExchange() {
+        return new TopicExchange(MODULES_EXCHANGE);
     }
 
     @Bean
@@ -62,10 +68,10 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding moduleBinding(TopicExchange exchange) {
+    public Binding moduleBinding() {
         return BindingBuilder
                 .bind(moduleQueue())
-                .to(exchange)
+                .to(modulesExchange())   // antes decía exchange() — incorrecto
                 .with(MODULE_ROUTING_KEY);
     }
 }

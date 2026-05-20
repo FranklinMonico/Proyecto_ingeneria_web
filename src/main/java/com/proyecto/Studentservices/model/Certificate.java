@@ -15,4 +15,5 @@ public class Certificate {
     private String courseId;
     private String courseName;
     private LocalDateTime issuedAt;
+    private boolean sent;
 }

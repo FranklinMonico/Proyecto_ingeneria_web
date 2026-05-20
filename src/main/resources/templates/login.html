@@ -1,73 +1,151 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es">
 <head>
-    <title>Login</title>
+    <meta charset="UTF-8">
+    <title>Login — Student Services</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1F4E79, #2E75B6);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .logo h1 { color: #1F4E79; font-size: 26px; }
+        .logo p { color: #666; font-size: 14px; margin-top: 4px; }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: #1F4E79; }
+        button {
+            width: 100%;
+            padding: 13px;
+            background: #1F4E79;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        button:hover { background: #2E75B6; }
+        .error {
+            background: #fee2e2;
+            color: #b91c1c;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+        .register-link a { color: #1F4E79; font-weight: 600; }
+    </style>
 </head>
-<body style="font-family: Arial; background:#f4f4f4; padding:20px;">
+<body>
+<div class="card">
+    <div class="logo">
+        <h1>🎓 Student Services</h1>
+        <p>Plataforma de Cursos en Línea</p>
+    </div>
 
-<div style="max-width:500px; margin:auto; background:white; padding:30px; border-radius:10px; text-align:center;">
+    <div class="error" id="errorMsg"></div>
 
-    <h2>Iniciar Sesión</h2>
+    <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="email" placeholder="tu@email.com"/>
+    </div>
+    <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="password" placeholder="••••••"/>
+    </div>
 
-    <!-- 🔥 IMPORTANTE: id y quitar th:action -->
-    <form id="loginForm">
+    <button onclick="login()">Iniciar sesión</button>
 
-        <div style="margin-bottom:15px;">
-            <input type="email" id="email" placeholder="Correo"
-                   style="width:100%; padding:10px;" required />
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <input type="password" id="password" placeholder="Contraseña"
-                   style="width:100%; padding:10px;" required />
-        </div>
-
-        <button type="submit"
-                style="padding:12px 20px; background:#007bff; color:white; border:none; border-radius:5px;">
-            Iniciar Sesión
-        </button>
-
-    </form>
-
+    <div class="register-link">
+        ¿No tienes cuenta? <a href="/view/register">Regístrate aquí</a>
+    </div>
+    <div class="register-link" style="margin-top:12px;">
+        <a href="/view/forgot-password" style="color:#666;font-size:13px;">¿Olvidaste tu contraseña?</a>
+    </div>
 </div>
 
 <script>
-    document.getElementById("loginForm").addEventListener("submit", async function(e) {
-        e.preventDefault();
+    async function login() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const errorMsg = document.getElementById('errorMsg');
 
-        const data = {
-            email: document.getElementById("email").value,
-            password: document.getElementById("password").value
-        };
+        if (!email || !password) {
+            errorMsg.textContent = 'Completa todos los campos';
+            errorMsg.style.display = 'block';
+            return;
+        }
 
         try {
-            const response = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(data)
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
             });
 
-            const result = await response.json();
+            const data = await res.json();
 
-            if (result.success) {
-                // 🔥 Guardar token
-                localStorage.setItem("token", result.data);
-
-                alert("Login exitoso");
-
-                // 🔥 Redirigir
-                window.location.href = "/view/index";
+            if (data.success) {
+             localStorage.setItem('token', data.data.accessToken);
+             localStorage.setItem('refreshToken', data.data.refreshToken);
+             localStorage.setItem('email', email);
+            window.location.href = '/view/dashboard';
             } else {
-                alert(result.message);
+                errorMsg.textContent = data.message || 'Credenciales incorrectas';
+                errorMsg.style.display = 'block';
             }
-
-        } catch (error) {
-            alert("Error en el servidor");
+        } catch(e) {
+            errorMsg.textContent = 'Error de conexión';
+            errorMsg.style.display = 'block';
         }
+    }
+
+    // Enter para login
+    document.addEventListener('keypress', e => {
+        if (e.key === 'Enter') login();
     });
 </script>
-
 </body>
 </html>

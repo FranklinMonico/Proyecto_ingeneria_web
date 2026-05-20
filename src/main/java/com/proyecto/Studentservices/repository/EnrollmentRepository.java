@@ -10,4 +10,5 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, String> 
 
     List<Enrollment> findByStudentEmail(String studentEmail);
     Optional<Enrollment> findByEnrollmentId(String enrollmentId);
+    Optional<Enrollment> findByStudentEmailAndCourseId(String studentEmail, String courseId);
 }

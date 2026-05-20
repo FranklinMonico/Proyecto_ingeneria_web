@@ -21,5 +21,7 @@ public class Enrollment {
     private String courseName;   // nuevo
     private int progress;
     private LocalDateTime enrolledAt; // nuevo
-    private String learningStudentId; // ID del estudiante en el sistema del Grupo A
+    private String learningStudentId;
+    private Integer totalModules; // guardado al activar inscripción
+    // ID del estudiante en el sistema del Grupo A
 }

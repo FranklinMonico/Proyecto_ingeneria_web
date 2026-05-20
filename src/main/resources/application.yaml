@@ -1,7 +1,15 @@
 server:
   port: 8081
 
+upload:
+  path: uploads/
+
 spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
   application:
     name: Studentservices
 
@@ -17,10 +25,10 @@ spring:
     show-sql: true
 
   rabbitmq:
-    host: localhost
+    host: 84.46.241.34
     port: 5672
-    username: guest
-    password: guest
+    username: admin
+    password: cambia_esta_password
 
   mail:
     host: sandbox.smtp.mailtrap.io
@@ -38,6 +46,9 @@ spring:
     prefix: classpath:/templates/
     suffix: .html
     cache: false
+
+learning-engine:
+  url: https://lexicological-semestrial-johnathan.ngrok-free.dev
 
 espocrm:
   url: http://localhost:8082

@@ -1,79 +1,247 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es">
 <head>
-    <title>Registro</title>
+    <meta charset="UTF-8">
+    <title>Registro — Student Services</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1F4E79, #2E75B6);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .logo { text-align: center; margin-bottom: 28px; }
+        .logo h1 { color: #1F4E79; font-size: 24px; }
+        .logo p { color: #666; font-size: 13px; margin-top: 4px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 6px; }
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%; padding: 11px 14px;
+            border: 1px solid #ddd; border-radius: 8px;
+            font-size: 14px; outline: none;
+        }
+        input:focus { border-color: #1F4E79; }
+        button {
+            width: 100%; padding: 13px;
+            background: #1F4E79; color: white;
+            border: none; border-radius: 8px;
+            font-size: 15px; font-weight: 600;
+            cursor: pointer; margin-top: 8px;
+        }
+        button:hover { background: #2E75B6; }
+        .error { background: #fee2e2; color: #b91c1c; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+        .success { background: #d1fae5; color: #065f46; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+        .login-link { text-align: center; margin-top: 20px; font-size: 13px; color: #666; }
+        .login-link a { color: #1F4E79; font-weight: 600; }
+
+        /* Estilos foto de perfil */
+        .photo-upload {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .photo-preview {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #1F4E79;
+            display: none;
+        }
+        .photo-placeholder {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: #f0f2f5;
+            border: 2px dashed #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .photo-placeholder:hover { border-color: #1F4E79; }
+        .photo-input-area { flex: 1; }
+        .photo-input-area label {
+            display: inline-block;
+            padding: 8px 14px;
+            background: #f0f2f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 4px;
+        }
+        .photo-input-area label:hover { background: #e2e8f0; }
+        .photo-input-area input[type="file"] { display: none; }
+        .photo-status { font-size: 11px; color: #999; }
+        .photo-status.uploading { color: #2E75B6; }
+        .photo-status.done { color: #059669; }
+        .photo-status.error { color: #b91c1c; }
+    </style>
 </head>
-<body style="font-family: Arial; background:#f4f4f4; padding:20px;">
+<body>
+<div class="card">
+    <div class="logo">
+        <h1>🎓 Crear cuenta</h1>
+        <p>Student Services — Plataforma de Cursos</p>
+    </div>
 
-<div style="max-width:500px; margin:auto; background:white; padding:30px; border-radius:10px; text-align:center;">
+    <div class="error" id="errorMsg"></div>
+    <div class="success" id="successMsg"></div>
 
-    <h2>Crear Cuenta</h2>
+    <div class="form-group">
+        <label>Nombre completo</label>
+        <input type="text" id="name" placeholder="Franklin Hernández"/>
+    </div>
+    <div class="form-group">
+        <label>Apellido</label>
+        <input type="text" id="lastName" placeholder="Hernández"/>
+    </div>
+    <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="email" placeholder="tu@email.com"/>
+    </div>
+    <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="password" placeholder="Mínimo 6 caracteres"/>
+    </div>
 
-    <form id="registerForm">
-
-        <div style="margin-bottom:15px;">
-            <input type="text" id="name" placeholder="Nombre"
-                   style="width:100%; padding:10px;" required />
+    <!-- Foto de perfil -->
+    <div class="form-group">
+        <label>Foto de perfil <span style="color:#999;font-weight:400;">— opcional</span></label>
+        <div class="photo-upload">
+            <div class="photo-placeholder" id="photoPlaceholder" onclick="document.getElementById('fileInput').click()">
+                👤
+            </div>
+            <img class="photo-preview" id="photoPreview"/>
+            <div class="photo-input-area">
+                <label for="fileInput">📷 Elegir foto</label>
+                <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(this)"/>
+                <div class="photo-status" id="photoStatus">JPG, PNG — máx 5MB</div>
+            </div>
         </div>
+        <input type="hidden" id="profilePicture"/>
+    </div>
 
-        <div style="margin-bottom:15px;">
-            <input type="email" id="email" placeholder="Correo"
-                   style="width:100%; padding:10px;" required />
-        </div>
+    <button onclick="register()">Crear cuenta</button>
 
-        <div style="margin-bottom:15px;">
-            <input type="password" id="password" placeholder="Contraseña"
-                   style="width:100%; padding:10px;" required />
-        </div>
-
-        <button type="submit"
-                style="padding:12px 20px; background:#28a745; color:white; border:none; border-radius:5px;">
-            Registrarse
-        </button>
-
-    </form>
-
+    <div class="login-link">
+        ¿Ya tienes cuenta? <a href="/view/login">Inicia sesión</a>
+    </div>
 </div>
 
 <script>
-    document.getElementById("registerForm").addEventListener("submit", async function(e) {
-        e.preventDefault();
+    let uploadingPhoto = false;
 
-        const data = {
-            name: document.getElementById("name").value,
-            email: document.getElementById("email").value,
-            password: document.getElementById("password").value
-        };
+async function handleFileSelect(input) {
+    if (!input.files || !input.files[0]) return;
+
+    const file = input.files[0];
+    const status = document.getElementById('photoStatus');
+    const preview = document.getElementById('photoPreview');
+    const placeholder = document.getElementById('photoPlaceholder');
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+
+    status.textContent = '⏳ Subiendo imagen...';
+    status.className = 'photo-status uploading';
+    uploadingPhoto = true; // bloqueamos el registro
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch('/api/upload/profile-picture', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            document.getElementById('profilePicture').value = data.data;
+            status.textContent = '✅ Imagen lista';
+            status.className = 'photo-status done';
+        } else {
+            status.textContent = '❌ ' + (data.message || 'Error al subir');
+            status.className = 'photo-status error';
+        }
+    } catch(e) {
+        status.textContent = '❌ Error de conexión';
+        status.className = 'photo-status error';
+    } finally {
+        uploadingPhoto = false; // desbloqueamos
+    }
+}
+
+    async function register() {
+        const name = document.getElementById('name').value.trim();
+        const lastName = document.getElementById('lastName').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const profilePicture = document.getElementById('profilePicture').value;
+        console.log('profilePicture value:', profilePicture);
+        const errorMsg = document.getElementById('errorMsg');
+        const successMsg = document.getElementById('successMsg');
+
+        errorMsg.style.display = 'none';
+        successMsg.style.display = 'none';
+if (uploadingPhoto) {
+        document.getElementById('errorMsg').textContent = 'Espera a que termine de subir la foto';
+        document.getElementById('errorMsg').style.display = 'block';
+        return;
+    }
+        if (!name || !lastName || !email || !password) {
+            errorMsg.textContent = 'Completa todos los campos obligatorios';
+            errorMsg.style.display = 'block';
+            return;
+        }
 
         try {
-            const response = await fetch("/api/auth/register", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(data)
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name , lastName, email, password, profilePicture })
             });
 
-            const result = await response.json();
+            const data = await res.json();
 
-            if (result.success) {
-                // 🔥 USAR MENSAJE DEL BACKEND
-                alert(result.message);
-
-                // 🔥 REDIRECCIÓN
-                setTimeout(() => {
-                    window.location.href = "/login";
-                }, 1500);
-
+            if (data.success) {
+                successMsg.textContent = '✅ Cuenta creada. Revisa tu correo para confirmarla.';
+                successMsg.style.display = 'block';
+                setTimeout(() => window.location.href = '/view/login', 3000);
             } else {
-                alert(result.message);
+                errorMsg.textContent = data.message || 'Error al registrar';
+                errorMsg.style.display = 'block';
             }
-
-        } catch (error) {
-            alert("Error en el servidor");
+        } catch(e) {
+            errorMsg.textContent = 'Error de conexión';
+            errorMsg.style.display = 'block';
         }
-    });
+    }
 </script>
-
 </body>
 </html>

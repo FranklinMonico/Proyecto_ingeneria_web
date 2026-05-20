@@ -26,12 +26,13 @@ public class Student {
 
     private String profilePicture;
 
-    // 🔥 NUEVO
     private boolean enabled = false;
 
     private String verificationToken;
 
     private String resetToken;
+    private String lastName;
 
     private Date resetTokenExpiration;
+    private String refreshToken;
 }

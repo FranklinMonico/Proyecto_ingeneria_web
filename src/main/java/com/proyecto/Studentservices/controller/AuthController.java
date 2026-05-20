@@ -13,6 +13,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @Controller
 @RestController
 @RequestMapping("/api/auth")
@@ -36,14 +38,35 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
-        String token = authService.login(request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Login exitoso", token));
+    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest request) {
+        Map<String, String> tokens = authService.login(request);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Login exitoso", tokens));
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestParam String refreshToken) {
+        String newToken = authService.refresh(refreshToken);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Token renovado", newToken));
+    }
     @GetMapping("/confirm")
     public ResponseEntity<?> confirm(@RequestParam String token) {
         authService.confirmAccount(token);
         return ResponseEntity.ok(new ApiResponse<>(true, "Cuenta confirmada", null));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+        authService.forgotPassword(email);
+        return ResponseEntity.ok(new ApiResponse<>(true,
+                "Si el email existe recibirás un enlace", null));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(
+            @RequestParam String token,
+            @RequestParam String newPassword) {
+        authService.resetPassword(token, newPassword);
+        return ResponseEntity.ok(new ApiResponse<>(true,
+                "Contraseña actualizada correctamente", null));
     }
 }

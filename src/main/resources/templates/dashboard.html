@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard — Student Services</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; min-height: 100vh; }
+
+        .navbar {
+            background: #1F4E79; color: white;
+            padding: 14px 28px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .navbar h1 { font-size: 20px; }
+        .navbar-right { display: flex; align-items: center; gap: 16px; font-size: 14px; }
+        .navbar button {
+            background: rgba(255,255,255,0.2);
+            border: none; color: white;
+            padding: 7px 16px; border-radius: 6px;
+            cursor: pointer; font-size: 13px;
+        }
+        .navbar button:hover { background: rgba(255,255,255,0.3); }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+
+        .welcome {
+            background: white; border-radius: 12px;
+            padding: 24px 28px; margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .welcome h2 { color: #1F4E79; font-size: 22px; }
+        .welcome p { color: #666; font-size: 14px; margin-top: 4px; }
+        .badge {
+            background: #1F4E79; color: white;
+            padding: 8px 20px; border-radius: 20px;
+            font-size: 13px; font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 18px; font-weight: 700;
+            color: #1F4E79; margin-bottom: 16px;
+        }
+
+        .courses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .course-card {
+            background: white; border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .course-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        .course-name { font-size: 16px; font-weight: 700; color: #222; margin-bottom: 12px; }
+        .course-id { font-size: 11px; color: #999; margin-bottom: 8px; }
+
+        .progress-bar {
+            background: #e9ecef; border-radius: 10px;
+            height: 8px; margin-bottom: 6px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 10px;
+            background: linear-gradient(90deg, #1F4E79, #2E75B6);
+            transition: width 0.5s;
+        }
+        .progress-text { font-size: 12px; color: #666; margin-bottom: 14px; }
+
+        .card-actions { display: flex; gap: 8px; }
+
+        .btn {
+            padding: 8px 14px; border-radius: 8px;
+            font-size: 13px; font-weight: 600;
+            cursor: pointer; border: none; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-primary { background: #1F4E79; color: white; }
+        .btn-primary:hover { background: #2E75B6; }
+        .btn-secondary { background: #f0f2f5; color: #1F4E79; border: 1px solid #ddd; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-success { background: #059669; color: white; }
+
+        .completed-badge {
+            background: #d1fae5; color: #065f46;
+            padding: 3px 10px; border-radius: 12px;
+            font-size: 11px; font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center; padding: 40px;
+            background: white; border-radius: 12px;
+            color: #666;
+        }
+        .empty-state p { font-size: 15px; margin-top: 8px; }
+
+        .certs-section {
+            background: white; border-radius: 12px;
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .cert-item {
+            display: flex; justify-content: space-between;
+            align-items: center; padding: 12px 0;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .cert-item:last-child { border-bottom: none; }
+        .cert-name { font-weight: 600; color: #222; }
+        .cert-date { font-size: 12px; color: #999; }
+
+        .loading { text-align: center; padding: 40px; color: #666; }
+
+        /* Estilos cursos disponibles */
+        .available-card {
+            background: white; border-radius: 12px;
+            padding: 0; overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .available-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        .available-card-img {
+            width: 100%; height: 140px;
+            object-fit: cover;
+        }
+        .available-card-img-placeholder {
+            width: 100%; height: 140px;
+            background: linear-gradient(135deg, #1F4E79, #2E75B6);
+            display: flex; align-items: center;
+            justify-content: center; font-size: 40px;
+        }
+        .available-card-body { padding: 16px; }
+        .available-card-title {
+            font-size: 15px; font-weight: 700;
+            color: #222; margin-bottom: 6px;
+        }
+        .available-card-instructor {
+            font-size: 12px; color: #666;
+            margin-bottom: 10px;
+        }
+        .available-card-footer {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-top: 12px;
+        }
+        .available-card-price {
+            font-size: 18px; font-weight: 700;
+            color: #1F4E79;
+        }
+        .available-card-modules {
+            font-size: 12px; color: #666;
+        }
+        .enrolled-tag {
+            display: block; text-align: center;
+            background: #d1fae5; color: #065f46;
+            padding: 8px; border-radius: 8px;
+            font-size: 12px; font-weight: 600;
+            margin-top: 10px;
+        }
+        .not-enrolled-tag {
+            display: block; text-align: center;
+            background: #f0f2f5; color: #1F4E79;
+            padding: 8px; border-radius: 8px;
+            font-size: 12px; font-weight: 600;
+            margin-top: 10px; border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h1>🎓 Student Services</h1>
+    <div class="navbar-right">
+        <span id="userEmail"></span>
+        <button onclick="window.location.href='/view/profile'">👤 Mi Perfil</button>
+        <button onclick="logout()">Cerrar sesión</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Bienvenida -->
+    <div class="welcome">
+        <div>
+            <h2>¡Hola, <span id="userName">Estudiante</span>! 👋</h2>
+            <p>Aquí están tus cursos inscritos y tu progreso</p>
+        </div>
+        <div class="badge" id="certBadge">0 Certificados</div>
+    </div>
+
+    <!-- Mis cursos -->
+    <div class="section-title">📚 Mis Cursos</div>
+    <div class="courses-grid" id="coursesGrid">
+        <div class="loading">Cargando tus cursos...</div>
+    </div>
+
+    <!-- Cursos disponibles del Grupo A -->
+    <div class="section-title">🌐 Cursos Disponibles</div>
+    <div class="courses-grid" id="availableCoursesGrid">
+        <div class="loading">Cargando catálogo...</div>
+    </div>
+
+    <!-- Certificados -->
+    <div class="section-title">🏆 Mis Certificados</div>
+    <div class="certs-section" id="certsSection">
+        <div class="loading">Cargando certificados...</div>
+    </div>
+
+</div>
+
+<script>
+    const token = localStorage.getItem('token');
+    const email = localStorage.getItem('email');
+
+    if (!token) window.location.href = '/view/login';
+
+    document.getElementById('userEmail').textContent = email;
+
+    async function loadDashboard() {
+        try {
+            const res = await fetch('/api/dashboard', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+
+            if (res.status === 401) { logout(); return; }
+
+            const response = await res.json();
+            const data = response.data || response;
+
+            if (data.name) {
+                document.getElementById('userName').textContent = data.name;
+            }
+
+            renderCourses(data.enrolledCourses || []);
+            renderAvailableCourses(data.availableCourses || []);
+            await renderCerts(data.totalCertificates || 0);
+
+        } catch(e) {
+            console.error('Error cargando dashboard:', e);
+            document.getElementById('coursesGrid').innerHTML =
+                '<div class="empty-state"><p>Error cargando datos</p></div>';
+        }
+    }
+
+    function renderCourses(courses) {
+        const grid = document.getElementById('coursesGrid');
+
+        if (courses.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <p>No tienes cursos inscritos aún.</p>
+                    <p style="margin-top:8px;font-size:13px;">
+                        Cuando te inscribas a un curso aparecerá aquí.
+                    </p>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = courses.map(course => `
+            <div class="course-card">
+                <div class="course-id">Curso ID: ${course.courseId}</div>
+                <div class="course-name">${course.courseName || 'Curso'}</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${course.progress}%"></div>
+                </div>
+                <div class="progress-text">
+                    ${course.progress}% completado
+                    ${course.completed ? '<span class="completed-badge">✅ Completado</span>' : ''}
+                </div>
+                <div class="card-actions">
+                    <a href="/view/forum/${course.courseId}" class="btn btn-primary">
+                        💬 Ir al Foro
+                    </a>
+                    ${course.completed ?
+                        `<span class="btn btn-success">🏆 Certificado obtenido</span>` :
+                        `<span class="btn btn-secondary">📖 ${course.totalModules} módulos</span>`
+                    }
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderAvailableCourses(courses) {
+        const grid = document.getElementById('availableCoursesGrid');
+
+        if (!courses || courses.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <p>No hay cursos disponibles en este momento.</p>
+                    <p style="margin-top:8px;font-size:13px;">
+                        El catálogo estará disponible cuando el Grupo A esté conectado.
+                    </p>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = courses.map(course => `
+            <div class="available-card">
+                ${course.imageUrl
+                    ? `<img src="${course.imageUrl}" class="available-card-img"
+                           onerror="this.style.display='none'"/>`
+                    : `<div class="available-card-img-placeholder">📚</div>`
+                }
+                <div class="available-card-body">
+                    <div class="available-card-title">${course.title}</div>
+                    <div class="available-card-instructor">
+                        👨‍🏫 ${course.instructor || 'Sin instructor'}
+                    </div>
+                    <div class="available-card-footer">
+                        <span class="available-card-price">
+                            $${course.price ? course.price.toFixed(2) : '0.00'}
+                        </span>
+                        <span class="available-card-modules">
+                            📚 ${course.totalModules || 0} módulos
+                            · 🎬 ${course.totalLessons || 0} lecciones
+                        </span>
+                    </div>
+                    ${course.enrolled
+                        ? `<span class="enrolled-tag">✅ Ya estás inscrito</span>`
+                        : `<span class="not-enrolled-tag">Ver curso</span>`
+                    }
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function renderCerts(total) {
+        document.getElementById('certBadge').textContent =
+            total + ' Certificado' + (total !== 1 ? 's' : '');
+
+        const section = document.getElementById('certsSection');
+
+        if (!email) {
+            section.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">No se pudo identificar el usuario.</p>';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/certificates/' + email, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+
+            if (!res.ok) throw new Error('Error ' + res.status);
+
+            const response = await res.json();
+            const certs = Array.isArray(response)
+                ? response
+                : (response.data || response.content || []);
+
+            if (certs.length === 0) {
+                section.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">Aún no tienes certificados. ¡Completa un curso!</p>';
+                return;
+            }
+
+            section.innerHTML = certs.map(cert => `
+                <div class="cert-item">
+                    <div>
+                        <div class="cert-name">🏆 ${cert.courseName}</div>
+                        <div class="cert-date">
+                            Obtenido el ${new Date(cert.issuedAt).toLocaleDateString('es-SV')}
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <span class="completed-badge">Completado</span>
+                        <a href="/api/certificates/${cert.id}/download"
+                           style="background:#1F4E79;color:white;padding:6px 14px;
+                                  border-radius:8px;font-size:12px;font-weight:600;
+                                  text-decoration:none;">
+                            📄 Descargar PDF
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+
+        } catch(e) {
+            console.error('Error cargando certificados:', e);
+            section.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">Error cargando certificados</p>';
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('email');
+        window.location.href = '/view/login';
+    }
+
+    loadDashboard();
+</script>
+</body>
+</html>

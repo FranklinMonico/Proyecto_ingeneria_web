@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface CertificateRepository extends JpaRepository<Certificate, String> {
     List<Certificate> findByStudentEmail(String studentEmail);
     Optional<Certificate> findByStudentEmailAndCourseId(String studentEmail, String courseId);
+    List<Certificate> findByStudentEmailAndSentFalse(String studentEmail);
 }

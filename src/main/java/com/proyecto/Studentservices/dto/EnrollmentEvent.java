@@ -1,16 +1,15 @@
 package com.proyecto.Studentservices.dto;
 
 import lombok.Data;
-
 import java.time.LocalDateTime;
 
 @Data
 public class EnrollmentEvent {
-
     private Long enrollmentId;
-    private Long studentId;
     private String studentEmail;
+    private String studentName;
     private Long courseId;
-    private String courseName;
+    private String courseTitle;
+    private int courseTotalModules;
     private LocalDateTime activatedAt;
 }
